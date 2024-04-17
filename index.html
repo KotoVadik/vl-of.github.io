@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список дел | @vl-of</title>
+    <link rel="icon" type="image/png" href="https://lh5.googleusercontent.com/uGbm73Mc2qj_OjcBOfqdTCFgr8Rz11u8lc-dYA_OEd20Pb7zftzeGf-H9GDnzhasyopkoqpuG5D7wpxd08YijOo=w1280">
+
+    <style>
+        body {
+            background-color: #222; /* Цвет фона страницы */
+            color: #fff; /* Цвет текста */
+            font-family: Arial, sans-serif; /* Шрифт текста */
+            padding: 20px;
+        }
+        input[type="text"] {
+            width: 300px; /* Увеличенная ширина поля ввода */
+            padding: 5px;
+            font-size: 16px;
+            background-color: #444; /* Цвет фона поля ввода */
+            color: #fff; /* Цвет текста в поле ввода */
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 10px; /* Добавленный пробел между строками */
+            margin-right: 10px;
+        }
+        button {
+            padding: 5px; /* Уменьшенный отступ кнопки */
+            font-size: 16px;
+            background-color: #666; /* Цвет фона кнопки */
+            color: #fff; /* Цвет текста на кнопке */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #888; /* Цвет фона кнопки при наведении */
+        }
+        button[type="submit"] {
+            background-color: #888; /* Цвет фона кнопки "💾" */
+        }
+        .task {
+            margin-bottom: 10px;
+        }
+        .archived-tasks ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .archived-tasks li {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #555; /* Цвет разделителя между заданиями */
+            padding-bottom: 10px;
+        }
+        .archive-active {
+            background-color: #333; /* Цвет фона блока архива */
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .archive-active button {
+            background-color: #666; /* Цвет фона кнопки в блоке архива */
+        }
+        .date-header {
+            color: #aaa; /* Цвет текста заголовка даты */
+            margin-top: 10px; /* Отступ сверху для заголовка даты */
+            margin-bottom: 5px; /* Отступ снизу для заголовка даты */
+        }
+        .task-info {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <form method="POST" action="/">
+        <input type="text" name="input_text" placeholder="Введите текст">
+        <button type="submit">💾</button>
+    </form>
+
+    <br><br> <!-- Добавленный пробел между строками -->
+
+    {% if tasks %}
+        <div class="tasks">
+            {% for task in tasks %}
+                <div class="task">
+                    <form id="archiveForm{{ task.id }}" method="POST" action="/archive/{{ task.id }}" style="display: inline;">
+                        <button type="button" onclick="archiveTask({{ task.id }})">✅</button>
+                    </form>
+                    <label>{{ task.content }}</label>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <br><br>
+    <button type="button" onclick="showArchive()">Архив ⬇️</button>
+    <div id="archive" class="archive-active" style="display: none;">
+        {% if archived_tasks %}
+            <div class="archived-tasks">
+                <ul>
+                    {% set current_date = '' %}
+                    {% for task in archived_tasks %}
+                        {% if task.created_at.strftime('%d.%m') != current_date %}
+                            <div class="date-header">{{ task.created_at.strftime('%d.%m') }}</div>
+                            {% set current_date = task.created_at.strftime('%d.%m') %}
+                        {% endif %}
+                        <li>
+                            <div class="task-info">
+                                <label>{{ task.content }}</label>
+                            </div>
+                            <div class="task-buttons">
+                                <form id="restoreForm{{ task.id }}" method="POST" action="/restore/{{ task.id }}" style="display: inline;">
+                                    <button type="button" onclick="restoreTask({{ task.id }})">🔙</button>
+                                </form>
+                                <form id="deleteForm{{ task.id }}" method="POST" action="/delete/{{ task.id }}" style="display: inline;">
+                                    <button type="button" onclick="deleteTask({{ task.id }})">🗑️</button>
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <button type="button" onclick="clearArchive()">Очистить архив</button>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function showArchive() {
+            var archive = document.getElementById("archive");
+            archive.style.display = archive.style.display === "none" ? "block" : "none";
+        }
+
+        function archiveTask(taskId) {
+            document.getElementById("archiveForm" + taskId).submit();
+        }
+
+        function restoreTask(taskId) {
+            document.getElementById("restoreForm" + taskId).submit();
+        }
+
+        function deleteTask(taskId) {
+            if (confirm("Вы уверены, что хотите удалить задание?")) {
+                document.getElementById("deleteForm" + taskId).submit();
+            }
+        }
+
+        function clearArchive() {
+            if (confirm("Вы уверены, что хотите очистить архив?")) {
+                fetch('/clear_archive', { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            window.location.reload();
+                        } else {
+                            console.error('Ошибка при очистке архива');
+                        }
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
